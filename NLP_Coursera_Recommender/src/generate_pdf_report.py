@@ -754,7 +754,8 @@ class PDFReportGenerator:
 
         # Initialize the PDF document
         self.doc = SimpleDocTemplate(filename, pagesize=A4, topMargin=1*inch,
-                                   bottomMargin=1*inch, leftMargin=1*inch, rightMargin=1*inch)
+                                   bottomMargin=1*inch, leftMargin=1*inch, rightMargin=1*inch,
+                                   author="DataRoamer")
 
         # Initialize system
         self.initialize_system()
