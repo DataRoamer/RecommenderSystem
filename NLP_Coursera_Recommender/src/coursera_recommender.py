@@ -8,6 +8,7 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import re
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -44,6 +45,75 @@ class CourseraRecommender:
 
         self.stop_words = set(stopwords.words('english'))
         self.lemmatizer = WordNetLemmatizer()
+
+    def load_real_dataset(self, dataset_path=None):
+        """Load the real Coursera dataset from CSV file."""
+        if dataset_path is None:
+            # Default path relative to src directory
+            current_dir = os.path.dirname(__file__)
+            dataset_path = os.path.join(current_dir, '..', 'data', 'original_coursera_courses.csv')
+
+        try:
+            # Load the dataset
+            df = pd.read_csv(dataset_path)
+
+            # Clean and standardize column names
+            df = df.rename(columns={
+                'course_title': 'title',
+                'course_organization': 'university',
+                'course_Certificate_type': 'category',
+                'course_rating': 'rating',
+                'course_difficulty': 'level',
+                'course_students_enrolled': 'enrollment'
+            })
+
+            # Create course_id from index
+            df['course_id'] = 'COURSE_' + df.index.astype(str).str.zfill(4)
+
+            # Clean enrollment data (remove 'k', 'M' suffixes and convert to numbers)
+            def clean_enrollment(enrollment_str):
+                if pd.isna(enrollment_str):
+                    return 0
+                enrollment_str = str(enrollment_str).lower().strip()
+                if 'k' in enrollment_str:
+                    return float(enrollment_str.replace('k', '')) * 1000
+                elif 'm' in enrollment_str:
+                    return float(enrollment_str.replace('m', '')) * 1000000
+                else:
+                    try:
+                        return float(enrollment_str)
+                    except:
+                        return 0
+
+            df['enrollment'] = df['enrollment'].apply(clean_enrollment)
+
+            # Fill missing values
+            df['title'] = df['title'].fillna('Unknown Course')
+            df['university'] = df['university'].fillna('Unknown University')
+            df['category'] = df['category'].fillna('COURSE')
+            df['rating'] = df['rating'].fillna(df['rating'].mean())
+            df['level'] = df['level'].fillna('Mixed')
+
+            # Create description and skills fields for compatibility with existing methods
+            df['description'] = df['title'] + ' offered by ' + df['university'] + '. ' + df['level'] + ' level course.'
+            df['skills'] = df['category'].str.replace('SPECIALIZATION', 'Specialization Skills').str.replace('COURSE', 'General Skills')
+
+            # Add duration field for compatibility
+            df['duration'] = df['level'].map({
+                'Beginner': '4-6 weeks',
+                'Intermediate': '6-8 weeks',
+                'Advanced': '8-12 weeks',
+                'Mixed': '4-8 weeks'
+            }).fillna('4-8 weeks')
+
+            self.courses_df = df
+            print(f"Successfully loaded {len(df)} real Coursera courses")
+            return df
+
+        except Exception as e:
+            print(f"Error loading dataset: {e}")
+            print("Falling back to sample data...")
+            return self.create_sample_data()
 
     def create_sample_data(self):
         """Create sample Coursera course dataset for demonstration."""
@@ -362,9 +432,9 @@ def main():
     # Initialize recommender
     recommender = CourseraRecommender()
 
-    # Create sample dataset
-    print("Loading sample Coursera course dataset...")
-    courses_df = recommender.create_sample_data()
+    # Load real dataset
+    print("Loading real Coursera course dataset...")
+    courses_df = recommender.load_real_dataset()
     print(f"Loaded {len(courses_df)} courses")
 
     # Build features
@@ -373,16 +443,21 @@ def main():
     recommender.build_topic_features()
     print("Features built successfully!")
 
-    # Display available courses
-    print("\nAvailable Courses:")
+    # Display available courses (sample)
+    print("\nAvailable Courses (showing first 10):")
     print("-" * 60)
-    for _, course in courses_df.iterrows():
-        print(f"{course['course_id']}: {course['title']} ({course['category']})")
+    for _, course in courses_df.head(10).iterrows():
+        try:
+            # Handle Unicode characters safely
+            title = str(course['title']).encode('ascii', 'ignore').decode('ascii')
+            print(f"{course['course_id']}: {title} ({course['category']})")
+        except Exception as e:
+            print(f"{course['course_id']}: [Title contains special characters] ({course['category']})")
 
     # Example 1: Course-to-course recommendations
     print("\n\nExample 1: Course-to-Course Recommendations")
     print("="*60)
-    target_course = 'CS001'
+    target_course = 'COURSE_0006'  # AI For Everyone
     recommender.display_course_info(target_course)
 
     print(f"Recommendations based on '{target_course}' (TF-IDF method):")
@@ -410,16 +485,16 @@ def main():
     # Example 3: Topic analysis
     print("\n\nExample 3: Topic Distribution Analysis")
     print("="*60)
-    course_topics = recommender.get_topic_distribution('CS002')
-    print(f"Topic distribution for course CS002:")
+    course_topics = recommender.get_topic_distribution('COURSE_0007')  # AI For Medical Treatment
+    print(f"Topic distribution for course COURSE_0007:")
     for topic, prob in course_topics.items():
         print(f"  {topic}: {prob}")
 
     # Example 4: Feature importance
     print("\n\nExample 4: Important Keywords Analysis")
     print("="*60)
-    important_features = recommender.get_feature_importance('CS003', top_n=8)
-    print(f"Most important keywords for course CS003:")
+    important_features = recommender.get_feature_importance('COURSE_0006', top_n=8)  # AI For Everyone
+    print(f"Most important keywords for course COURSE_0006:")
     for feature, score in important_features:
         print(f"  {feature}: {score:.3f}")
 

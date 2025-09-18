@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Python313/python.exe -m pip install --user reportlab matplotlib fpdf2 weasyprint)",
+      "Bash(/c/Python313/python.exe generate_eda_report.py)",
+      "Bash(/c/Python313/python.exe generate_forecasting_report.py)",
+      "Bash(/c/Python313/python.exe generate_executive_summary.py)",
+      "Bash(/c/Python313/python.exe generate_technical_report.py)",
+      "Bash(git config:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
