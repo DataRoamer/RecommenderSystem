@@ -15,6 +15,13 @@ from utils.visualizations import (
     create_quality_score_gauge, plot_missing_pattern_matrix,
     plot_feature_distributions, plot_correlation_network, plot_pairwise_relationships
 )
+# AI Module - Local LLM Integration (Privacy-First)
+from modules.ai import (
+    display_ai_setup_wizard,
+    display_ai_status_badge,
+    display_model_settings,
+    check_ai_prerequisites
+)
 import os
 
 # Configure page
@@ -536,6 +543,13 @@ def display_data_quality_dashboard():
 def display_sidebar():
     """Display sidebar navigation"""
     st.sidebar.markdown("# 🛠️ EDA Tool")
+
+    # AI Status Badge
+    try:
+        display_ai_status_badge()
+    except Exception:
+        pass  # Silently fail if AI module has issues
+
     st.sidebar.markdown("---")
 
     # Navigation
@@ -561,6 +575,7 @@ def display_sidebar():
         # Section navigation
         sections = [
             ("📁 Data Upload", "upload"),
+            ("🤖 AI Setup", "ai_setup"),
             ("📊 Data Overview", "overview"),
             ("📋 Data Quality", "quality"),
             ("🔍 EDA", "eda"),
@@ -578,7 +593,7 @@ def display_sidebar():
 
         # Show current section status
         current_section = st.session_state.current_section
-        implemented_sections = ["upload", "overview", "quality", "eda", "target", "features", "readiness", "reports"]
+        implemented_sections = ["upload", "ai_setup", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
 
         for section_name, section_key in sections:
             if section_key == current_section:
@@ -603,6 +618,14 @@ def display_sidebar():
         st.markdown("**Analysis Options**")
         st.slider("Missing data threshold (%)", 0, 100, 20)
         st.slider("Correlation threshold", 0.0, 1.0, 0.8, 0.1)
+
+        # AI Settings (if available)
+        st.markdown("---")
+        st.markdown("**AI Settings**")
+        try:
+            display_model_settings()
+        except Exception:
+            st.caption("AI features not configured")
 
 def display_eda_dashboard():
     """Display comprehensive EDA dashboard"""
@@ -2098,11 +2121,11 @@ def main():
 
     # If no data is loaded, force upload section
     if not st.session_state.data_loaded:
-        st.markdown("## 🚀 Welcome to the EDA Tool!")
+        st.markdown("## 🚀 Welcome to the AI-Powered EDA Tool!")
         st.markdown("""
         This tool helps you quickly assess your dataset's quality and readiness for machine learning.
 
-        **Features:**
+        **Core Features:**
         - 📁 **Data Upload**: Support for CSV and Excel files with automatic encoding detection
         - 📊 **Data Quality Analysis**: Missing values, duplicates, outliers detection
         - 🔍 **Exploratory Data Analysis**: Distributions, correlations, statistical summaries
@@ -2110,13 +2133,24 @@ def main():
         - 📈 **Model Readiness Score**: Overall assessment with actionable insights
         - 📄 **Professional Reports**: Export findings as PDF or Excel
 
-        **Get Started:** Upload your dataset using the file uploader below.
+        **🤖 AI Features (Privacy-First):**
+        - 🔒 **100% Local Processing** - Your data never leaves your computer
+        - 💬 **AI Chat Assistant** - Ask questions about your data in natural language
+        - 🧠 **Auto-Generated Insights** - AI-powered data analysis and recommendations
+        - 📝 **Code Generation** - Generate Python/Pandas code from natural language
+        - 🎯 **Smart Recommendations** - AI-powered data cleaning and feature engineering
+
+        **Get Started:** Upload your dataset using the file uploader below, or configure AI features in the sidebar.
         """)
         display_upload_section()
 
     elif current_section == "upload":
         # File upload section
         display_upload_section()
+
+    elif current_section == "ai_setup":
+        # AI Setup wizard - available anytime
+        display_ai_setup_wizard()
 
     elif current_section == "overview" and st.session_state.data_loaded:
         # Data overview and preview
