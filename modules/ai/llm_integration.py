@@ -6,7 +6,7 @@ Handles communication with Ollama and manages AI responses
 import subprocess
 import json
 import time
-from typing import Dict, List, Optional, Any, Generator
+from typing import Dict, List, Optional, Any, Generator, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
