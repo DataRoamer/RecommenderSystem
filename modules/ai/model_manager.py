@@ -82,6 +82,16 @@ class ModelManager:
 
     def is_ollama_installed(self) -> bool:
         """Check if Ollama is installed on the system"""
+        # First try to check if Ollama service is accessible via API
+        try:
+            import requests
+            response = requests.get('http://localhost:11434/api/tags', timeout=3)
+            if response.status_code == 200:
+                return True
+        except:
+            pass
+
+        # Fallback to checking command line
         try:
             result = subprocess.run(
                 ['ollama', '--version'],
@@ -110,6 +120,18 @@ class ModelManager:
 
     def list_installed_models(self) -> List[str]:
         """List all installed Ollama models"""
+        # Try using API first
+        try:
+            import requests
+            response = requests.get('http://localhost:11434/api/tags', timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                models = [model['name'] for model in data.get('models', [])]
+                return models
+        except Exception as e:
+            print(f"Error listing models via API: {e}")
+
+        # Fallback to command line
         try:
             result = subprocess.run(
                 ['ollama', 'list'],

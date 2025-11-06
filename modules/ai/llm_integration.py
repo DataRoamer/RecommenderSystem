@@ -174,7 +174,12 @@ class LocalLLM:
                 'stream': False,
                 'options': {
                     'temperature': self.temperature,
-                    'num_predict': max_tokens
+                    'num_predict': min(max_tokens, 256),  # Very limited output
+                    'num_ctx': 512,  # Minimal context window for low memory
+                    'num_gpu': 0,  # Force CPU mode
+                    'num_thread': 1,  # Single thread to minimize memory
+                    'num_batch': 32,  # Very small batch size
+                    'numa': False  # Disable NUMA
                 }
             }
 

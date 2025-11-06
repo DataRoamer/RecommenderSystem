@@ -27,6 +27,11 @@ from .ui_components import (
     check_ai_prerequisites,
     display_ai_feature_guard
 )
+from .chat_assistant import (
+    ChatAssistant,
+    display_ai_chat,
+    display_ai_insights
+)
 
 __all__ = [
     # Model Management
@@ -56,4 +61,8 @@ __all__ = [
     'display_ai_status_badge',
     'check_ai_prerequisites',
     'display_ai_feature_guard'
+    # Chat Assistant
+    'ChatAssistant',
+    'display_ai_chat',
+    'display_ai_insights'
 ]

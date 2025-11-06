@@ -20,7 +20,9 @@ from modules.ai import (
     display_ai_setup_wizard,
     display_ai_status_badge,
     display_model_settings,
-    check_ai_prerequisites
+    check_ai_prerequisites,
+    display_ai_chat,
+    display_ai_insights
 )
 import os
 
@@ -576,6 +578,7 @@ def display_sidebar():
         sections = [
             ("📁 Data Upload", "upload"),
             ("🤖 AI Setup", "ai_setup"),
+            ("💬 AI Chat", "ai_chat"),
             ("📊 Data Overview", "overview"),
             ("📋 Data Quality", "quality"),
             ("🔍 EDA", "eda"),
@@ -1956,28 +1959,79 @@ def display_reports_dashboard():
                     'model_readiness': st.session_state.model_readiness
                 }
 
-                # Convert to JSON (handling numpy types)
-                def convert_numpy(obj):
+                # Convert to JSON (handling numpy types and circular references)
+                def convert_to_serializable(obj, seen=None):
+                    """Convert complex objects to JSON-serializable format with circular reference handling"""
+                    if seen is None:
+                        seen = set()
+
+                    # Check for circular reference
+                    obj_id = id(obj)
+                    if obj_id in seen:
+                        return "<circular reference>"
+
+                    # Handle basic types
+                    if obj is None or isinstance(obj, (bool, int, float, str)):
+                        return obj
+
+                    # Handle numpy types
                     if isinstance(obj, np.integer):
                         return int(obj)
                     elif isinstance(obj, np.floating):
                         return float(obj)
                     elif isinstance(obj, np.ndarray):
                         return obj.tolist()
-                    elif isinstance(obj, pd.Series):
-                        return obj.to_dict()
-                    elif isinstance(obj, pd.DataFrame):
-                        return obj.to_dict()
-                    return obj
+                    elif isinstance(obj, np.bool_):
+                        return bool(obj)
 
-                json_str = json.dumps(export_data, default=convert_numpy, indent=2)
+                    # Mark this object as seen
+                    seen.add(obj_id)
 
-                st.download_button(
-                    label="💾 Download JSON",
-                    data=json_str,
-                    file_name=f"eda_analysis_{st.session_state.filename.split('.')[0]}.json",
-                    mime="application/json"
-                )
+                    try:
+                        # Handle pandas objects
+                        if isinstance(obj, pd.Series):
+                            result = obj.to_dict()
+                            seen.remove(obj_id)
+                            return result
+                        elif isinstance(obj, pd.DataFrame):
+                            result = obj.to_dict(orient='records')
+                            seen.remove(obj_id)
+                            return result
+
+                        # Handle dictionaries
+                        elif isinstance(obj, dict):
+                            result = {k: convert_to_serializable(v, seen.copy()) for k, v in obj.items()}
+                            seen.remove(obj_id)
+                            return result
+
+                        # Handle lists and tuples
+                        elif isinstance(obj, (list, tuple)):
+                            result = [convert_to_serializable(item, seen.copy()) for item in obj]
+                            seen.remove(obj_id)
+                            return result
+
+                        # For other objects, try to convert to string
+                        else:
+                            seen.remove(obj_id)
+                            return str(obj)
+                    except Exception as e:
+                        seen.remove(obj_id)
+                        return f"<error converting: {str(e)}>"
+
+                try:
+                    # Convert export data with circular reference handling
+                    serializable_data = convert_to_serializable(export_data)
+                    json_str = json.dumps(serializable_data, indent=2)
+
+                    st.download_button(
+                        label="💾 Download JSON",
+                        data=json_str,
+                        file_name=f"eda_analysis_{st.session_state.filename.split('.')[0]}.json",
+                        mime="application/json"
+                    )
+                    st.success("✅ Export data prepared successfully!")
+                except Exception as e:
+                    st.error(f"❌ Error exporting data: {str(e)}")
 
         with col2:
             if st.button("📈 Export Feature Info (CSV)"):
@@ -2011,7 +2065,13 @@ def display_reports_dashboard():
         st.subheader("🐍 Generate Preprocessing Code")
 
         if st.button("🔧 Generate Python Code", type="primary"):
-            code_content = f'''"""
+            try:
+                # Get missing data percentage safely
+                missing_pct = 0.0
+                if st.session_state.quality_report and 'missing_values' in st.session_state.quality_report:
+                    missing_pct = st.session_state.quality_report['missing_values'].get('overall_missing_percentage', 0.0)
+
+                code_content = f'''"""
 Data Preprocessing Pipeline
 Generated by EDA Tool for: {st.session_state.filename}
 """
@@ -2028,35 +2088,35 @@ def preprocess_data(df):
     df_processed = df.copy()
 
     # 1. Handle missing values
-    # Based on analysis: {st.session_state.quality_report['missing_values']['overall_missing_percentage']:.1f}% missing data
+    # Based on analysis: {missing_pct:.1f}% missing data
 '''
 
-            if st.session_state.feature_engineering_report:
-                # Add encoding recommendations
-                encoding_recs = st.session_state.feature_engineering_report['encoding_recommendations']['categorical_encoding']
+                if st.session_state.feature_engineering_report:
+                    # Add encoding recommendations
+                    encoding_recs = st.session_state.feature_engineering_report['encoding_recommendations']['categorical_encoding']
 
-                if encoding_recs:
-                    code_content += '''
+                    if encoding_recs:
+                        code_content += '''
 
     # 2. Categorical Encoding
 '''
-                    for feature, rec in list(encoding_recs.items())[:3]:  # Limit to first 3 examples
-                        if 'One-Hot' in rec['method']:
-                            code_content += f'''    # {rec['method']} for {feature}
+                        for feature, rec in list(encoding_recs.items())[:3]:  # Limit to first 3 examples
+                            if 'One-Hot' in rec['method']:
+                                code_content += f'''    # {rec['method']} for {feature}
     df_processed = pd.get_dummies(df_processed, columns=['{feature}'], prefix='{feature}')
 '''
-                        elif 'Label' in rec['method']:
-                            code_content += f'''    # {rec['method']} for {feature}
+                            elif 'Label' in rec['method']:
+                                code_content += f'''    # {rec['method']} for {feature}
     le_{feature} = LabelEncoder()
     df_processed['{feature}_encoded'] = le_{feature}.fit_transform(df_processed['{feature}'].fillna('Unknown'))
 '''
 
-                # Add scaling recommendations
-                scaling_recs = st.session_state.feature_engineering_report['encoding_recommendations']['scaling_recommendations']
+                    # Add scaling recommendations
+                    scaling_recs = st.session_state.feature_engineering_report['encoding_recommendations']['scaling_recommendations']
 
-                if scaling_recs:
-                    numeric_features = list(scaling_recs.keys())[:5]  # Limit to first 5
-                    code_content += f'''
+                    if scaling_recs:
+                        numeric_features = list(scaling_recs.keys())[:5]  # Limit to first 5
+                        code_content += f'''
 
     # 3. Feature Scaling
     numeric_features = {numeric_features}
@@ -2064,10 +2124,10 @@ def preprocess_data(df):
     df_processed[numeric_features] = scaler.fit_transform(df_processed[numeric_features])
 '''
 
-            # Add target analysis code if available
-            if st.session_state.target_analysis:
-                target_col = st.session_state.selected_target
-                code_content += f'''
+                # Add target analysis code if available
+                if st.session_state.target_analysis:
+                    target_col = st.session_state.selected_target
+                    code_content += f'''
 
     return df_processed
 
@@ -2095,14 +2155,18 @@ def prepare_for_modeling(df):
 # X_train, X_test, y_train, y_test = prepare_for_modeling(df)
 '''
 
-            st.code(code_content, language='python')
+                st.code(code_content, language='python')
 
-            st.download_button(
-                label="💾 Download Python Code",
-                data=code_content,
-                file_name=f"preprocessing_pipeline_{st.session_state.filename.split('.')[0]}.py",
-                mime="text/plain"
-            )
+                st.download_button(
+                    label="💾 Download Python Code",
+                    data=code_content,
+                    file_name=f"preprocessing_pipeline_{st.session_state.filename.split('.')[0]}.py",
+                    mime="text/plain"
+                )
+                st.success("✅ Code generated successfully!")
+
+            except Exception as e:
+                st.error(f"❌ Error generating code: {str(e)}")
 
 def main():
     """Main application function"""
@@ -2151,6 +2215,10 @@ def main():
     elif current_section == "ai_setup":
         # AI Setup wizard - available anytime
         display_ai_setup_wizard()
+
+    elif current_section == "ai_chat":
+        # AI Chat Assistant - available anytime
+        display_ai_chat()
 
     elif current_section == "overview" and st.session_state.data_loaded:
         # Data overview and preview
