@@ -8,3 +8,7 @@ venv/
 temp/
 reports/
 .streamlit/
+# Build artifacts
+build/
+dist/
+*.spec
