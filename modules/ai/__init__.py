@@ -53,6 +53,13 @@ from .data_cleaning_advisor import (
     get_cleaning_history,
     clear_cleaning_history
 )
+from .feature_engineering_advisor import (
+    FeatureEngineeringAdvisor,
+    FeatureSuggestion,
+    display_feature_engineering_ai,
+    get_feature_history,
+    clear_feature_history
+)
 
 __all__ = [
     # Model Management
@@ -103,5 +110,11 @@ __all__ = [
     'CleaningRecommendation',
     'display_data_cleaning',
     'get_cleaning_history',
-    'clear_cleaning_history'
+    'clear_cleaning_history',
+    # Feature Engineering Advisor
+    'FeatureEngineeringAdvisor',
+    'FeatureSuggestion',
+    'display_feature_engineering_ai',
+    'get_feature_history',
+    'clear_feature_history'
 ]

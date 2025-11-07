@@ -24,7 +24,8 @@ from modules.ai import (
     display_ai_chat,
     display_ai_insights,
     display_nl_query_translator,
-    display_data_cleaning
+    display_data_cleaning,
+    display_feature_engineering_ai
 )
 import os
 
@@ -587,6 +588,7 @@ def display_sidebar():
             ("💬 AI Chat", "ai_chat"),
             ("🧠 AI Insights", "ai_insights"),
             ("🔍 NL Query", "nl_query"),
+            ("🤖 AI Feature Eng", "ai_feature_eng"),
             ("🎯 Target Analysis", "target"),
             ("🛠️ Feature Engineering", "features"),
             ("🚨 Leakage Detection", "leakage"),
@@ -601,7 +603,7 @@ def display_sidebar():
 
         # Show current section status
         current_section = st.session_state.current_section
-        implemented_sections = ["upload", "ai_setup", "ai_chat", "ai_insights", "data_cleaning", "nl_query", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
+        implemented_sections = ["upload", "ai_setup", "ai_chat", "ai_insights", "data_cleaning", "nl_query", "ai_feature_eng", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
 
         for section_name, section_key in sections:
             if section_key == current_section:
@@ -2236,6 +2238,10 @@ def main():
     elif current_section == "nl_query":
         # Natural Language Query Translator - available anytime
         display_nl_query_translator()
+
+    elif current_section == "ai_feature_eng":
+        # AI-Powered Feature Engineering - available anytime
+        display_feature_engineering_ai()
 
     elif current_section == "overview" and st.session_state.data_loaded:
         # Data overview and preview
