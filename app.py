@@ -23,7 +23,8 @@ from modules.ai import (
     check_ai_prerequisites,
     display_ai_chat,
     display_ai_insights,
-    display_nl_query_translator
+    display_nl_query_translator,
+    display_data_cleaning
 )
 import os
 
@@ -582,6 +583,7 @@ def display_sidebar():
             ("📊 Data Overview", "overview"),
             ("📋 Data Quality", "quality"),
             ("🔍 EDA", "eda"),
+            ("🧹 Data Cleaning", "data_cleaning"),
             ("💬 AI Chat", "ai_chat"),
             ("🧠 AI Insights", "ai_insights"),
             ("🔍 NL Query", "nl_query"),
@@ -599,7 +601,7 @@ def display_sidebar():
 
         # Show current section status
         current_section = st.session_state.current_section
-        implemented_sections = ["upload", "ai_setup", "ai_chat", "ai_insights", "nl_query", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
+        implemented_sections = ["upload", "ai_setup", "ai_chat", "ai_insights", "data_cleaning", "nl_query", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
 
         for section_name, section_key in sections:
             if section_key == current_section:
@@ -2226,6 +2228,10 @@ def main():
     elif current_section == "ai_insights":
         # AI-Generated Insights - available anytime
         display_ai_insights()
+
+    elif current_section == "data_cleaning":
+        # AI-Powered Data Cleaning - available anytime
+        display_data_cleaning()
 
     elif current_section == "nl_query":
         # Natural Language Query Translator - available anytime

@@ -45,6 +45,14 @@ from .nl_query_translator import (
     get_query_history,
     clear_query_history
 )
+from .data_cleaning_advisor import (
+    DataCleaningAdvisor,
+    CleaningIssue,
+    CleaningRecommendation,
+    display_data_cleaning,
+    get_cleaning_history,
+    clear_cleaning_history
+)
 
 __all__ = [
     # Model Management
@@ -88,5 +96,12 @@ __all__ = [
     'execute_nl_query',
     'add_query_to_history',
     'get_query_history',
-    'clear_query_history'
+    'clear_query_history',
+    # Data Cleaning Advisor
+    'DataCleaningAdvisor',
+    'CleaningIssue',
+    'CleaningRecommendation',
+    'display_data_cleaning',
+    'get_cleaning_history',
+    'clear_cleaning_history'
 ]
