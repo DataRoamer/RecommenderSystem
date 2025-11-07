@@ -30,7 +30,20 @@ from .ui_components import (
 from .chat_assistant import (
     ChatAssistant,
     display_ai_chat,
-    display_ai_insights
+    display_ai_insights,
+    display_nl_query_translator
+)
+from .insights_generator import (
+    InsightsGenerator,
+    generate_insights_cached,
+    clear_insights_cache
+)
+from .nl_query_translator import (
+    NLQueryTranslator,
+    execute_nl_query,
+    add_query_to_history,
+    get_query_history,
+    clear_query_history
 )
 
 __all__ = [
@@ -60,9 +73,20 @@ __all__ = [
     'display_model_settings',
     'display_ai_status_badge',
     'check_ai_prerequisites',
-    'display_ai_feature_guard'
+    'display_ai_feature_guard',
     # Chat Assistant
     'ChatAssistant',
     'display_ai_chat',
-    'display_ai_insights'
+    'display_ai_insights',
+    'display_nl_query_translator',
+    # Insights Generator
+    'InsightsGenerator',
+    'generate_insights_cached',
+    'clear_insights_cache',
+    # NL Query Translator
+    'NLQueryTranslator',
+    'execute_nl_query',
+    'add_query_to_history',
+    'get_query_history',
+    'clear_query_history'
 ]

@@ -235,6 +235,8 @@ def display_ai_insights():
 
     # Check if AI is available
     from .model_manager import ModelManager
+    from .insights_generator import generate_insights_cached, clear_insights_cache
+
     manager = ModelManager()
 
     if not manager.is_ollama_installed() or not manager.get_default_model():
@@ -249,14 +251,263 @@ def display_ai_insights():
         st.info("📁 Please upload a dataset first to generate insights.")
         return
 
-    st.info("🚀 **Auto-Generated Insights** - Coming in the next phase!")
-    st.markdown("""
-    This feature will automatically analyze your data and provide:
-    - Key findings and patterns
-    - Potential data quality issues
-    - Recommendations for preprocessing
-    - Feature engineering suggestions
-    - Model selection advice
+    # Get default model
+    default_model = manager.get_default_model()
 
-    **Status:** Implementation in progress...
+    # Display info about the feature
+    st.markdown("""
+    **Auto-Generated Insights** uses AI to analyze your data and provide:
+    - 🔍 Key findings and patterns
+    - ⚠️ Potential data quality issues
+    - 🛠️ Recommendations for preprocessing
+    - ✨ Feature engineering suggestions
+    - 🎯 ML readiness assessment
     """)
+
+    # Refresh button
+    col1, col2, col3 = st.columns([1, 1, 4])
+    with col1:
+        if st.button("🔄 Regenerate", help="Generate fresh insights"):
+            clear_insights_cache()
+            st.rerun()
+    with col2:
+        auto_generate = st.checkbox("Auto-generate", value=True, help="Automatically generate insights when data is loaded")
+
+    st.markdown("---")
+
+    # Gather available reports
+    quality_report = st.session_state.get('quality_report')
+    eda_report = st.session_state.get('eda_report')
+    target_analysis = st.session_state.get('target_analysis')
+
+    # Check if any analysis is available
+    if not quality_report and not eda_report:
+        st.warning("⚠️ No analysis reports available yet. Please run Data Quality or EDA Analysis first.")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📊 Go to Data Quality"):
+                st.session_state.current_section = "data_quality"
+                st.rerun()
+        with col2:
+            if st.button("📈 Go to EDA"):
+                st.session_state.current_section = "eda"
+                st.rerun()
+        return
+
+    # Prepare dataset info
+    dataset_info = {
+        'name': st.session_state.get('filename', 'Unknown'),
+        'rows': len(st.session_state.df) if st.session_state.get('df') is not None else 0,
+        'columns': len(st.session_state.df.columns) if st.session_state.get('df') is not None else 0,
+        'memory_mb': st.session_state.df.memory_usage(deep=True).sum() / (1024 * 1024) if st.session_state.get('df') is not None else 0
+    }
+
+    # Generate insights
+    with st.spinner("🤖 Analyzing your data and generating insights..."):
+        response = generate_insights_cached(
+            quality_report=quality_report,
+            eda_report=eda_report,
+            target_analysis=target_analysis,
+            dataset_info=dataset_info,
+            model_name=default_model,
+            force_refresh=False
+        )
+
+    # Display results
+    if response is None:
+        st.error("❌ Failed to generate insights. Please check if Ollama is running and the model is available.")
+        return
+
+    if not response.success:
+        st.error(f"❌ Error generating insights: {response.error}")
+        return
+
+    # Display insights
+    st.markdown("### 📊 Analysis Results")
+    st.success("✅ Insights generated successfully!")
+
+    # Display the insights in a nice format
+    st.markdown(response.content)
+
+    # Display metadata
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Generation Time", f"{response.duration_ms:.0f}ms")
+    with col2:
+        st.metric("Model Used", default_model)
+    with col3:
+        timestamp = datetime.now().strftime("%I:%M %p")
+        st.metric("Generated At", timestamp)
+
+    # Additional options
+    with st.expander("📋 Analysis Details"):
+        st.markdown("**Data Sources Used:**")
+        sources = []
+        if quality_report:
+            sources.append("✅ Data Quality Report")
+        if eda_report:
+            sources.append("✅ EDA Analysis Report")
+        if target_analysis:
+            sources.append("✅ Target Variable Analysis")
+
+        for source in sources:
+            st.markdown(f"- {source}")
+
+        st.markdown(f"\n**Dataset:** {dataset_info['name']}")
+        st.markdown(f"**Shape:** {dataset_info['rows']} rows × {dataset_info['columns']} columns")
+
+
+def display_nl_query_translator():
+    """Display Natural Language Query Translator interface"""
+
+    st.markdown('<div class="section-header">🔍 Natural Language Query</div>', unsafe_allow_html=True)
+
+    # Check if AI is available
+    from .model_manager import ModelManager
+    from .nl_query_translator import (
+        execute_nl_query,
+        add_query_to_history,
+        get_query_history,
+        clear_query_history
+    )
+
+    manager = ModelManager()
+
+    if not manager.is_ollama_installed() or not manager.get_default_model():
+        st.warning("⚠️ AI features not configured. Please set up AI first.")
+        if st.button("🤖 Go to AI Setup"):
+            st.session_state.current_section = "ai_setup"
+            st.rerun()
+        return
+
+    # Check if data is loaded
+    if not st.session_state.get('data_loaded', False):
+        st.info("📁 Please upload a dataset first to use natural language queries.")
+        return
+
+    # Get default model
+    default_model = manager.get_default_model()
+
+    # Display info
+    st.markdown("""
+    **Natural Language Query Translator** converts your questions into executable code:
+    - 💬 Ask questions in plain English
+    - 🐍 Get pandas code automatically
+    - ▶️ Execute code safely
+    - 📊 View results instantly
+    """)
+
+    # Example queries
+    with st.expander("💡 Example Queries"):
+        st.markdown("""
+        Try asking:
+        - "Show me the first 10 rows"
+        - "What are the columns with missing values?"
+        - "Show me descriptive statistics for numeric columns"
+        - "Find all rows where age is greater than 30"
+        - "Group by category and calculate mean values"
+        - "Show me the correlation between price and rating"
+        - "Find outliers in the salary column"
+        - "Count unique values in each column"
+        """)
+
+    st.markdown("---")
+
+    # Query input
+    query = st.text_area(
+        "Enter your question:",
+        height=100,
+        placeholder="e.g., Show me rows with missing values in the 'age' column",
+        key="nl_query_input"
+    )
+
+    col1, col2, col3 = st.columns([1, 1, 4])
+    with col1:
+        execute_button = st.button("🚀 Execute", type="primary")
+    with col2:
+        if st.button("🗑️ Clear History"):
+            clear_query_history()
+            st.success("History cleared!")
+            st.rerun()
+
+    # Execute query
+    if execute_button and query:
+        with st.spinner("🤖 Generating and executing code..."):
+            result = execute_nl_query(
+                query=query,
+                df=st.session_state.df,
+                dataset_name=st.session_state.get('filename', 'dataset'),
+                model_name=default_model
+            )
+
+            # Add to history
+            add_query_to_history(result)
+
+            # Display result
+            st.markdown("---")
+            st.markdown("### 📊 Query Results")
+
+            if result['success']:
+                st.success("✅ Code generated and executed successfully!")
+
+                # Display the generated code
+                st.markdown("**Generated Code:**")
+                st.code(result['code'], language='python')
+
+                # Display the result
+                st.markdown("**Output:**")
+
+                # Check if result is a DataFrame
+                if isinstance(result['result'], pd.DataFrame):
+                    st.dataframe(result['result'], use_container_width=True)
+                elif isinstance(result['result'], pd.Series):
+                    st.dataframe(result['result'].to_frame(), use_container_width=True)
+                else:
+                    st.text(str(result['result']))
+
+                # Metadata
+                st.caption(f"⏱️ Generated in {result['generation_time_ms']:.0f}ms")
+
+            else:
+                st.error(f"❌ Error: {result['error']}")
+
+                if result['code']:
+                    st.markdown("**Generated Code (failed to execute):**")
+                    st.code(result['code'], language='python')
+
+    # Display query history
+    history = get_query_history()
+
+    if history:
+        st.markdown("---")
+        st.markdown("### 📜 Query History")
+
+        # Show last 5 queries
+        for i, query_result in enumerate(reversed(history[-5:])):
+            with st.expander(f"Query {len(history) - i}: {query_result['query'][:50]}..."):
+                st.markdown(f"**Query:** {query_result['query']}")
+
+                if query_result['success']:
+                    st.markdown("**Status:** ✅ Success")
+                    st.code(query_result['code'], language='python')
+
+                    # Show result preview
+                    if query_result['result'] is not None:
+                        st.markdown("**Result:**")
+                        if isinstance(query_result['result'], (pd.DataFrame, pd.Series)):
+                            st.dataframe(query_result['result'], use_container_width=True)
+                        else:
+                            st.text(str(query_result['result'])[:500])
+                else:
+                    st.markdown("**Status:** ❌ Failed")
+                    st.error(query_result['error'])
+
+                st.caption(f"🕐 {query_result['timestamp']}")
+
+        st.caption(f"Showing last 5 of {len(history)} queries")
+    elif execute_button:
+        pass  # Don't show empty history message if just executed
+    else:
+        st.info("💡 No queries yet. Try asking a question about your data!")
