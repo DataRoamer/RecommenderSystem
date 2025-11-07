@@ -7,7 +7,7 @@ import streamlit as st
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from .llm_integration import LocalLLM, AIResponse
-from .context_builder import build_insight_context
+from .context_builder import build_analysis_context
 from .prompts import format_insight_prompt
 
 
@@ -48,7 +48,7 @@ class InsightsGenerator:
             AIResponse object with generated insights
         """
         # Build context from available reports
-        context = build_insight_context(
+        context = build_analysis_context(
             quality_report=quality_report,
             eda_report=eda_report,
             target_analysis=target_analysis
