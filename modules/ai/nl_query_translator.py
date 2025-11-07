@@ -233,7 +233,10 @@ def execute_nl_query(
             'success': False,
             'error': 'AI not available',
             'code': None,
-            'result': None
+            'result': None,
+            'query': query,
+            'timestamp': datetime.now().isoformat(),
+            'generation_time_ms': 0
         }
 
     # Translate query to code
@@ -249,7 +252,9 @@ def execute_nl_query(
             'error': f'Code generation failed: {response.error}',
             'code': None,
             'result': None,
-            'generation_time_ms': response.duration_ms
+            'generation_time_ms': response.duration_ms,
+            'query': query,
+            'timestamp': datetime.now().isoformat()
         }
 
     # Execute the code
