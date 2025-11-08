@@ -9,6 +9,7 @@ from modules.target_analysis import analyze_target_variable, auto_detect_target_
 from modules.feature_engineering import comprehensive_feature_engineering_report
 from modules.model_readiness import calculate_comprehensive_readiness_score
 from modules.leakage_detection import comprehensive_leakage_detection, get_leakage_summary_stats
+from modules.pii_detector import detect_pii_columns, get_pii_statistics, mask_pii_for_display
 from utils.visualizations import (
     plot_missing_heatmap, plot_missing_bar, plot_data_types,
     plot_correlation_heatmap, plot_outliers_boxplot, format_percentage,
@@ -110,8 +111,16 @@ def initialize_session_state():
         st.session_state.model_readiness = None
     if 'selected_target' not in st.session_state:
         st.session_state.selected_target = None
+    if 'pii_acknowledged' not in st.session_state:
+        st.session_state.pii_acknowledged = False
+    if 'pii_confirmed' not in st.session_state:
+        st.session_state.pii_confirmed = False
+    if 'pii_results' not in st.session_state:
+        st.session_state.pii_results = None
     if 'file_processed' not in st.session_state:
         st.session_state.file_processed = False
+    if 'last_file_id' not in st.session_state:
+        st.session_state.last_file_id = None
 
 def display_upload_section():
     """Display file upload section"""
@@ -146,12 +155,39 @@ def display_upload_section():
 
         return
 
-    uploaded_file = st.file_uploader(
-        "Choose a CSV or Excel file",
-        type=['csv', 'xlsx', 'xls'],
-        help="Upload your dataset to begin analysis. Supported formats: CSV, Excel (.xlsx, .xls)",
-        key="file_uploader"
+    # PII Acknowledgment Section
+    st.markdown("### 📋 Data Privacy & PII Acknowledgment")
+
+    pii_acknowledged = st.checkbox(
+        "I acknowledge that this dataset may contain Personal Identification Information (PII)",
+        value=st.session_state.pii_acknowledged,
+        help="PII includes names, emails, phone numbers, addresses, ID numbers, etc.",
+        key="pii_acknowledge_checkbox"
     )
+
+    # Update session state
+    st.session_state.pii_acknowledged = pii_acknowledged
+
+    if pii_acknowledged:
+        st.info("""
+        **Important:** This tool processes data locally on your machine for privacy.
+        However, please ensure you have the right to process this data.
+
+        For assistance with PII anonymization to comply with Australian Privacy Act
+        and other privacy regulations, please contact: **contact@astreon.com.au**
+        """)
+
+        st.markdown("---")
+
+        uploaded_file = st.file_uploader(
+            "Choose a CSV or Excel file",
+            type=['csv', 'xlsx', 'xls'],
+            help="Upload your dataset to begin analysis. Supported formats: CSV, Excel (.xlsx, .xls)",
+            key="file_uploader"
+        )
+    else:
+        st.warning("⚠️ Please acknowledge the PII statement above before uploading data.")
+        uploaded_file = None
 
     if uploaded_file is not None:
         # Get file ID to track if it's the same upload
@@ -208,6 +244,60 @@ def display_upload_section():
                     st.session_state.metadata = metadata
                     st.session_state.filename = uploaded_file.name
                     st.session_state.data_loaded = True
+
+                    # PII Detection
+                    with st.spinner('Scanning for Personal Identification Information (PII)...'):
+                        pii_results = detect_pii_columns(df)
+                        st.session_state.pii_results = pii_results
+
+                    # Check if PII was detected
+                    if pii_results['suspected_pii_columns']:
+                        st.error("🚨 **Potential PII Detected!**")
+
+                        st.warning(f"""
+                        The system has detected **{len(pii_results['suspected_pii_columns'])} column(s)**
+                        that may contain Personal Identification Information:
+                        """)
+
+                        # Show detected PII columns in expandable section
+                        with st.expander("📋 View Detected PII Columns", expanded=True):
+                            pii_stats = get_pii_statistics(df, pii_results['suspected_pii_columns'])
+
+                            for col in pii_results['suspected_pii_columns']:
+                                pii_type = pii_results['pii_types'].get(col, 'Unknown')
+                                confidence = pii_results['confidence'].get(col, 'Unknown')
+                                stats = pii_stats.get(col, {})
+
+                                st.markdown(f"**{col}**")
+                                st.markdown(f"- Type: {pii_type}")
+                                st.markdown(f"- Confidence: {confidence}")
+                                if stats:
+                                    st.markdown(f"- Non-null values: {stats['non_null_count']} ({stats['percentage']:.1f}%)")
+                                    if stats['sample_values_masked']:
+                                        st.markdown(f"- Sample (masked): {', '.join(stats['sample_values_masked'][:3])}")
+                                st.markdown("---")
+
+                        # User confirmation
+                        st.markdown("### ⚠️ Confirmation Required")
+                        pii_confirmed = st.checkbox(
+                            "✅ I confirm that I have reviewed the PII detected and have the authority to process this data",
+                            value=False,
+                            key="pii_confirm_checkbox"
+                        )
+
+                        if not pii_confirmed:
+                            st.info("""
+                            **Need help with PII anonymization?**
+
+                            We can assist you in anonymizing Personal Identifiers to comply with:
+                            - Australian Privacy Act 1988
+                            - GDPR and other international privacy regulations
+
+                            📧 Contact us: [contact@astreon.com.au](mailto:contact@astreon.com.au?subject=PII%20Anonymization%20Inquiry)
+                            """)
+                            st.stop()  # Prevent further processing
+                        else:
+                            st.success("✅ Confirmed. Proceeding with local data processing...")
 
                     # Generate quality report and EDA report
                     with st.spinner('Analyzing data quality...'):
