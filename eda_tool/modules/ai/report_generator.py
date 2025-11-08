@@ -151,21 +151,25 @@ Write a concise executive summary (3-5 bullet points) highlighting:
 
 Format as bullet points. Be concise and business-friendly."""
 
-        try:
-            # Get AI-generated summary
-            summary_content = get_ai_response(
-                prompt=prompt,
-                model_name=self.model_name,
-                temperature=0.7,
-                max_tokens=500
-            )
+        # Try AI generation, but use fallback if unavailable or fails
+        summary_content = None
 
-            if not summary_content or summary_content == "AI not available":
-                # Fallback to template
-                summary_content = self._generate_fallback_summary(
-                    df, quality_report, readiness_score
+        # Check if AI is available before trying
+        try:
+            import streamlit as st
+            # Suppress error messages during AI generation for reports
+            with st.spinner("Generating AI summary..."):
+                summary_content = get_ai_response(
+                    prompt=prompt,
+                    model_name=self.model_name,
+                    temperature=0.7,
+                    max_tokens=500
                 )
-        except Exception as e:
+        except:
+            pass
+
+        # Use fallback if AI failed or returned error
+        if not summary_content or summary_content == "AI not available" or "error" in str(summary_content).lower():
             summary_content = self._generate_fallback_summary(
                 df, quality_report, readiness_score
             )
@@ -185,6 +189,11 @@ Format as bullet points. Be concise and business-friendly."""
         """Generate fallback summary when AI is unavailable"""
 
         summary_points = []
+
+        # Add note about using template
+        summary_points.append(
+            "*Note: AI summary generation unavailable. Using template-based summary.*\n"
+        )
 
         # Data overview
         summary_points.append(
