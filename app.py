@@ -25,7 +25,8 @@ from modules.ai import (
     display_ai_insights,
     display_nl_query_translator,
     display_data_cleaning,
-    display_feature_engineering_ai
+    display_feature_engineering_ai,
+    display_anomaly_explanation
 )
 import os
 
@@ -589,6 +590,7 @@ def display_sidebar():
             ("🧠 AI Insights", "ai_insights"),
             ("🔍 NL Query", "nl_query"),
             ("🤖 AI Feature Eng", "ai_feature_eng"),
+            ("🔍 Anomaly Explain", "anomaly_explanation"),
             ("🎯 Target Analysis", "target"),
             ("🛠️ Feature Engineering", "features"),
             ("🚨 Leakage Detection", "leakage"),
@@ -603,7 +605,7 @@ def display_sidebar():
 
         # Show current section status
         current_section = st.session_state.current_section
-        implemented_sections = ["upload", "ai_setup", "ai_chat", "ai_insights", "data_cleaning", "nl_query", "ai_feature_eng", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
+        implemented_sections = ["upload", "ai_setup", "ai_chat", "ai_insights", "data_cleaning", "nl_query", "ai_feature_eng", "anomaly_explanation", "overview", "quality", "eda", "target", "features", "leakage", "readiness", "reports"]
 
         for section_name, section_key in sections:
             if section_key == current_section:
@@ -2242,6 +2244,10 @@ def main():
     elif current_section == "ai_feature_eng":
         # AI-Powered Feature Engineering - available anytime
         display_feature_engineering_ai()
+
+    elif current_section == "anomaly_explanation":
+        # AI-Powered Anomaly Explanation - available anytime
+        display_anomaly_explanation()
 
     elif current_section == "overview" and st.session_state.data_loaded:
         # Data overview and preview

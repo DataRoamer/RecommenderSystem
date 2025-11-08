@@ -60,6 +60,13 @@ from .feature_engineering_advisor import (
     get_feature_history,
     clear_feature_history
 )
+from .anomaly_explainer import (
+    AnomalyExplainer,
+    OutlierExplanation,
+    display_anomaly_explanation,
+    get_outlier_history,
+    clear_outlier_history
+)
 
 __all__ = [
     # Model Management
@@ -116,5 +123,11 @@ __all__ = [
     'FeatureSuggestion',
     'display_feature_engineering_ai',
     'get_feature_history',
-    'clear_feature_history'
+    'clear_feature_history',
+    # Anomaly Explainer
+    'AnomalyExplainer',
+    'OutlierExplanation',
+    'display_anomaly_explanation',
+    'get_outlier_history',
+    'clear_outlier_history'
 ]
