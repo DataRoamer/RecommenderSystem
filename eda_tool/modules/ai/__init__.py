@@ -67,6 +67,13 @@ from .anomaly_explainer import (
     get_outlier_history,
     clear_outlier_history
 )
+from .report_generator import (
+    ReportGenerator,
+    ReportSection,
+    display_report_generator,
+    get_report_history,
+    clear_report_history
+)
 
 __all__ = [
     # Model Management
@@ -129,5 +136,11 @@ __all__ = [
     'OutlierExplanation',
     'display_anomaly_explanation',
     'get_outlier_history',
-    'clear_outlier_history'
+    'clear_outlier_history',
+    # Report Generator
+    'ReportGenerator',
+    'ReportSection',
+    'display_report_generator',
+    'get_report_history',
+    'clear_report_history'
 ]
