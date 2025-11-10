@@ -11,3 +11,9 @@ plotly>=5.17.0
 chardet>=5.0.0
 requests>=2.31.0
 psutil>=5.9.0
+
+# Data preprocessing dependencies
+pyarrow>=14.0.0  # For Parquet and Feather formats
+tables>=3.9.0  # For HDF5 format
+lxml>=5.0.0  # For HTML and XML parsing
+html5lib>=1.1  # For better HTML table parsing

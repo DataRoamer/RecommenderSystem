@@ -3,6 +3,7 @@ import numpy as np
 import chardet
 import io
 from typing import Dict, Any, Tuple, Optional, Union
+from modules.data_preprocessor import DataPreprocessor
 
 def detect_encoding(file) -> str:
     """
@@ -26,24 +27,40 @@ def detect_encoding(file) -> str:
     except:
         return 'utf-8'
 
-def load_data(file, file_type: str) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+def load_data(file, file_type: str, filename: str = None, **kwargs) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """
-    Load data from CSV or Excel files with error handling.
+    Load data from various file formats with error handling.
+    Supports CSV, Excel, JSON, Parquet, TSV, TXT, Feather, HDF5, Pickle, SQLite, HTML, XML.
 
     Args:
         file: Uploaded file object
-        file_type: Type of file ('csv' or 'excel')
+        file_type: Type of file (e.g., 'csv', 'excel', 'json', etc.)
+        filename: Original filename (used for format detection)
+        **kwargs: Additional parameters for specific formats
 
     Returns:
         Tuple of (DataFrame, metadata_dict)
     """
     metadata = {}
+    preprocessor = DataPreprocessor()
 
     try:
-        if file_type.lower() == 'csv':
-            # Detect encoding
+        # Check if preprocessing is needed (non-CSV/Excel formats)
+        needs_preprocessing = preprocessor.is_supported_format(file_type.lower()) and file_type.lower() not in ['csv', 'excel', 'xlsx', 'xls']
+
+        if needs_preprocessing:
+            # Use preprocessor for other formats
+            df, preprocess_metadata = preprocessor.preprocess_file(file, filename or f"file.{file_type}", **kwargs)
+            metadata.update(preprocess_metadata)
+            metadata['preprocessing_used'] = True
+            metadata['encoding'] = 'N/A (Preprocessed)'
+            metadata['separator'] = 'N/A (Preprocessed)'
+
+        elif file_type.lower() == 'csv':
+            # Original CSV handling
             encoding = detect_encoding(file)
             metadata['encoding'] = encoding
+            metadata['preprocessing_used'] = False
 
             # Try different separators
             separators = [',', ';', '\t', '|']
@@ -65,10 +82,11 @@ def load_data(file, file_type: str) -> Tuple[pd.DataFrame, Dict[str, Any]]:
                 metadata['separator'] = ','
 
         elif file_type.lower() in ['excel', 'xlsx', 'xls']:
-            # Read Excel file
+            # Original Excel handling
             df = pd.read_excel(file, engine='openpyxl' if file_type.lower() in ['excel', 'xlsx'] else 'xlrd')
             metadata['encoding'] = 'N/A (Excel)'
             metadata['separator'] = 'N/A (Excel)'
+            metadata['preprocessing_used'] = False
         else:
             raise ValueError(f"Unsupported file type: {file_type}")
 

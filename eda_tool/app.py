@@ -179,10 +179,41 @@ def display_upload_section():
 
         st.markdown("---")
 
+        # File Format Support Information
+        with st.expander("📚 Supported File Formats & Pre-processing", expanded=False):
+            st.markdown("""
+            **Standard Formats (Direct Support):**
+            - 📄 **CSV** - Comma-separated values
+            - 📊 **Excel** - .xlsx, .xls files
+
+            **Pre-processed Formats (Auto-converted to DataFrame):**
+            - 🗂️ **JSON** - Array of objects, nested structures, or JSON lines
+            - 📦 **Parquet** - Apache Parquet columnar format
+            - 📑 **TSV** - Tab-separated values
+            - 📝 **TXT** - Text files with custom delimiters
+            - 🪶 **Feather** - Binary columnar format
+            - 🗄️ **HDF5** - Hierarchical Data Format (.h5, .hdf5)
+            - 🥒 **Pickle** - Serialized pandas DataFrame (.pkl, .pickle)
+            - 🗃️ **SQLite** - SQLite database files (.db, .sqlite, .sqlite3)
+            - 🌐 **HTML** - HTML files containing tables
+            - 🏷️ **XML** - XML files with simple repeating structures
+
+            **Pre-processing Features:**
+            - ✅ Automatic format detection
+            - ✅ Data validation during conversion
+            - ✅ Support for multiple data structures (nested JSON, SQL tables, etc.)
+            - ✅ Encoding detection and handling
+            - ✅ Error reporting and diagnostics
+
+            **Note:** For formats like SQLite (multiple tables), HDF5 (multiple keys), or HTML (multiple tables),
+            the tool will automatically select the first available dataset. For advanced options, consider
+            converting your data to CSV or Excel format first.
+            """)
+
         uploaded_file = st.file_uploader(
-            "Choose a CSV or Excel file",
-            type=['csv', 'xlsx', 'xls'],
-            help="Upload your dataset to begin analysis. Supported formats: CSV, Excel (.xlsx, .xls)",
+            "Choose a data file",
+            type=['csv', 'xlsx', 'xls', 'json', 'parquet', 'tsv', 'txt', 'feather', 'h5', 'hdf5', 'pkl', 'pickle', 'db', 'sqlite', 'sqlite3', 'html', 'htm', 'xml'],
+            help="Upload your dataset to begin analysis. Supported formats: CSV, Excel, JSON, Parquet, TSV, TXT, Feather, HDF5, Pickle, SQLite, HTML, XML",
             key="file_uploader"
         )
     else:
@@ -228,22 +259,29 @@ def display_upload_section():
 
         # Determine file type
         file_extension = uploaded_file.name.split('.')[-1].lower()
-        file_type = 'csv' if file_extension == 'csv' else 'excel'
+
+        # Map file extensions to types
+        if file_extension == 'csv':
+            file_type = 'csv'
+        elif file_extension in ['xlsx', 'xls']:
+            file_type = 'excel'
+        else:
+            # Use the extension directly for preprocessing
+            file_type = file_extension
 
         # Load data with progress bar
         with st.spinner(f'Loading {uploaded_file.name}...'):
             try:
-                df, metadata = load_data(uploaded_file, file_type)
+                df, metadata = load_data(uploaded_file, file_type, filename=uploaded_file.name)
 
                 # Validate data
                 validation = validate_dataframe(df)
 
                 if validation['is_valid']:
-                    # Store in session state
+                    # Store basic data in session state (but don't mark as fully loaded yet)
                     st.session_state.df = df
                     st.session_state.metadata = metadata
                     st.session_state.filename = uploaded_file.name
-                    st.session_state.data_loaded = True
 
                     # PII Detection
                     with st.spinner('Scanning for Personal Identification Information (PII)...'):
@@ -309,6 +347,9 @@ def display_upload_section():
                     with st.spinner('Analyzing feature engineering opportunities...'):
                         st.session_state.feature_engineering_report = comprehensive_feature_engineering_report(df)
 
+                    # Now mark data as fully loaded (after all reports are generated)
+                    st.session_state.data_loaded = True
+
                     # Mark as processed to prevent reprocessing on reruns
                     st.session_state.file_processed = True
 
@@ -317,7 +358,21 @@ def display_upload_section():
 
                     st.success(f"✅ Successfully loaded {uploaded_file.name}")
 
-                    # Display warnings if any
+                    # Show preprocessing info if applicable
+                    if metadata.get('preprocessing_used', False):
+                        st.info(f"""
+                        🔄 **Pre-processing Applied**
+                        - Original Format: `{metadata.get('original_format', 'Unknown').upper()}`
+                        - Converted to DataFrame: `{metadata.get('rows_converted', 0):,}` rows × `{metadata.get('columns_converted', 0)}` columns
+                        - Status: {metadata.get('conversion_status', 'Unknown').capitalize()}
+                        """)
+
+                        # Show preprocessing warnings if any
+                        if metadata.get('warnings'):
+                            for warning in metadata['warnings']:
+                                st.warning(f"⚠️ Pre-processing: {warning}")
+
+                    # Display validation warnings if any
                     if validation['warnings']:
                         for warning in validation['warnings']:
                             st.warning(f"⚠️ {warning}")

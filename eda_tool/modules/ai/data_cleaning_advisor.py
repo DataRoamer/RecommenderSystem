@@ -269,20 +269,23 @@ class DataCleaningAdvisor:
         for col in df.select_dtypes(include=['object']).columns:
             if 'email' in col.lower():
                 email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-                invalid_emails = df[col].dropna().apply(
+
+                # Create a boolean mask for invalid emails (aligned with df index)
+                invalid_emails_mask = df[col].notna() & df[col].apply(
                     lambda x: not re.match(email_pattern, str(x))
                 )
 
-                if invalid_emails.any():
-                    invalid_count = invalid_emails.sum()
-                    invalid_examples = df[col][invalid_emails].head(5).tolist()
+                if invalid_emails_mask.any():
+                    invalid_count = invalid_emails_mask.sum()
+                    # Use .loc to safely index with the boolean mask
+                    invalid_examples = df.loc[invalid_emails_mask, col].head(5).tolist()
 
                     issue = CleaningIssue(
                         id=f"format_{col}_{datetime.now().timestamp()}",
                         type='format',
                         severity='medium',
                         column=col,
-                        affected_rows=invalid_count,
+                        affected_rows=int(invalid_count),
                         description=f"Column '{col}' has {invalid_count} invalid email format(s)",
                         examples=invalid_examples,
                         details={
@@ -721,6 +724,9 @@ def display_data_cleaning():
                 st.session_state.cleaning_issues = issues
                 st.session_state.cleaning_recommendations = recommendations
                 st.session_state.cleaning_advisor = advisor
+
+                # Rerun to display results
+                st.rerun()
 
     with col2:
         if st.button("📜 View History"):
