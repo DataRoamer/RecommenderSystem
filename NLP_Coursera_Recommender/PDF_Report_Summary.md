@@ -1,7 +1,7 @@
 # Comprehensive PDF Report Summary
 
 ## 📄 Generated Report
-**File:** `reports/NLP_Coursera_Recommender_Report_20250917_121158.pdf`
+**File:** `reports/NLP_Coursera_Recommender_Report.pdf`
 
 ## 📋 Report Contents (6 Major Sections)
 
@@ -86,7 +86,7 @@
 ## 🚀 **How to Access:**
 ```bash
 cd NLP_Coursera_Recommender
-# PDF report is in: reports/NLP_Coursera_Recommender_Report_20250917_121158.pdf
+# PDF report is in: reports/NLP_Coursera_Recommender_Report.pdf
 ```
 
 The PDF report is now **comprehensive, professional, and contains all the detailed information** you requested, including the complete recommended courses with explanations and context!

@@ -8,7 +8,6 @@ evaluation metrics, and technical analysis.
 
 import os
 import sys
-from datetime import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +35,6 @@ class PDFReportGenerator:
         self.styles = getSampleStyleSheet()
         self.recommender = None
         self.evaluator = None
-        self.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         # Create custom styles
         self.create_custom_styles()
@@ -122,7 +120,6 @@ class PDFReportGenerator:
         # Report info box
         report_info = f"""
         <para alignment="center">
-        <b>Report Generated:</b> {self.timestamp}<br/>
         <b>System Version:</b> 1.0<br/>
         <b>Dataset:</b> Sample Coursera Courses (10 courses)<br/>
         <b>Methods:</b> TF-IDF Vectorization and Topic Modeling (LDA)
@@ -748,7 +745,7 @@ class PDFReportGenerator:
         """Generate the complete PDF report."""
         if filename is None:
             os.makedirs("reports", exist_ok=True)
-            filename = f"reports/NLP_Coursera_Recommender_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            filename = "reports/NLP_Coursera_Recommender_Report.pdf"
 
         print(f"Generating comprehensive PDF report: {filename}")
 
